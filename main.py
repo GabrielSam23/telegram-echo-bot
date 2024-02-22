@@ -33,6 +33,32 @@ form_message_ids = {}
 intents = discord.Intents.default()
 bot = commands.Bot(command_prefix=PREFIX, intents=intents)
 
+
+async def enviar_orientacao():
+    canal_orientacao_id = 1208915700178100274  # ID do canal de orientação
+    canal_orientacao = bot.get_channel(canal_orientacao_id)
+    if canal_orientacao:
+        embed_orientacao = discord.Embed(
+            title="Bem-vindo ao servidor!",
+            description="Aqui você encontrará todas as informações necessárias para se juntar à nossa comunidade.",
+            color=discord.Color.green()
+        )
+        embed_orientacao.set_thumbnail(
+            url="https://example.com/seu_logo.png")
+        embed_orientacao.add_field(
+            name="Como se candidatar?", value="Para se candidatar, utilize o comando `!enviarformulario` e preencha o formulário que será enviado em seguida.")
+        embed_orientacao.add_field(
+            name="Dúvidas?", value="Se tiver alguma dúvida, não hesite em entrar em contato com a equipe de moderação.")
+        embed_orientacao.set_footer(
+            text="Obrigado por escolher nosso servidor!")
+        try:
+            await canal_orientacao.send(embed=embed_orientacao)
+        except Exception as e:
+            print(f"Erro ao enviar a mensagem de orientação: {e}")
+    else:
+        print("Canal de orientação não encontrado.")
+
+
 class Formulario(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -106,8 +132,8 @@ class Formulario(commands.Cog):
         else:
             await ctx.send(f'Não foi possível enviar o formulário no momento. Por favor, tente novamente mais tarde.')
 
-def setup(bot):
-    bot.add_cog(Formulario(bot))
+
+bot.add_cog(Formulario(bot))
 
 
 @bot.event
@@ -118,31 +144,6 @@ async def on_ready():
     if not orientacao_enviada:
         await enviar_orientacao()
         orientacao_enviada = True
-
-
-async def enviar_orientacao():
-    canal_orientacao_id = 1208915700178100274  # ID do canal de orientação
-    canal_orientacao = bot.get_channel(canal_orientacao_id)
-    if canal_orientacao:
-        embed_orientacao = discord.Embed(
-            title="Bem-vindo ao servidor!",
-            description="Aqui você encontrará todas as informações necessárias para se juntar à nossa comunidade.",
-            color=discord.Color.green()
-        )
-        embed_orientacao.set_thumbnail(
-            url="https://example.com/seu_logo.png")
-        embed_orientacao.add_field(
-            name="Como se candidatar?", value="Para se candidatar, utilize o comando `!enviarformulario` e preencha o formulário que será enviado em seguida.")
-        embed_orientacao.add_field(
-            name="Dúvidas?", value="Se tiver alguma dúvida, não hesite em entrar em contato com a equipe de moderação.")
-        embed_orientacao.set_footer(
-            text="Obrigado por escolher nosso servidor!")
-        try:
-            await canal_orientacao.send(embed=embed_orientacao)
-        except Exception as e:
-            print(f"Erro ao enviar a mensagem de orientação: {e}")
-    else:
-        print("Canal de orientação não encontrado.")
 
 
 @bot.event
@@ -189,5 +190,4 @@ async def recusar_admissao(reaction, author):
         print("Canal de admissões negadas não encontrado.")
 
 
-bot.add_cog(Formulario(bot))
 bot.run(TOKEN)
