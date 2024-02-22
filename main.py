@@ -1,7 +1,9 @@
 import os
 import discord
 from discord.ext import commands
+from discord_components import DiscordComponents, Select, SelectOption
 from keep_alive import keep_alive
+
 keep_alive()
 
 # Configurações
@@ -29,6 +31,8 @@ form_message_ids = {}
 # Inicialização do bot
 intents = discord.Intents.default()
 bot = commands.Bot(command_prefix=PREFIX, intents=intents)
+# Inicialização do Discord Components
+DiscordComponents(bot)
 
 
 @bot.event
@@ -76,10 +80,31 @@ async def enviarformulario(ctx):
     for field in FORM_FIELDS:
         embed.add_field(
             name=field, value="Digite sua resposta aqui", inline=False)
-    message = await ctx.send(embed=embed)
+
+    # Adicionando campo de disponibilidade com menu suspenso
+    select = Select(
+        placeholder="Selecione sua disponibilidade",
+        options=[
+            SelectOption(label="Manhã", value="Manhã"),
+            SelectOption(label="Tarde", value="Tarde"),
+            SelectOption(label="Noite", value="Noite"),
+            SelectOption(label="Todas as opções", value="Todas as opções")
+        ]
+    )
+
+    message = await ctx.send(embed=embed, components=[select])
 
     # Inicializa as respostas
     respostas = {}
+
+    # Aguarda a seleção da disponibilidade
+    interaction = await bot.wait_for("select_option", check=lambda i: i.component == select)
+    disponibilidade = interaction.values[0]
+    respostas["Disponibilidade"] = disponibilidade
+
+    # Atualiza o embed com a resposta de disponibilidade
+    embed.set_field_at(0, name="Disponibilidade", value=disponibilidade, inline=False)
+    await message.edit(embed=embed)
 
     # Atualiza o embed com as respostas fornecidas
     for field in FORM_FIELDS:
