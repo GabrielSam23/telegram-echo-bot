@@ -33,6 +33,82 @@ form_message_ids = {}
 intents = discord.Intents.default()
 bot = commands.Bot(command_prefix=PREFIX, intents=intents)
 
+class Formulario(commands.Cog):
+    def __init__(self, bot):
+        self.bot = bot
+
+    async def prompt_disponibilidade(self, ctx):
+        embed = discord.Embed(title="Selecione a Disponibilidade",
+                              description="Selecione sua disponibilidade abaixo:",
+                              color=discord.Color.blue())
+        options = [discord.SelectOption(label=option, value=option) for option in DISPONIBILIDADE_OPTIONS]
+        select = discord.ui.Select(placeholder="Escolha uma opção...", options=options)
+        view = discord.ui.View()
+        view.add_item(select)
+        message = await ctx.send(embed=embed, view=view)
+        return message
+
+    @commands.command()
+    async def enviarformulario(self, ctx):
+        # Envia as instruções
+        embed = discord.Embed(title="Formulário de Admissão",
+                              description="Por favor, preencha o formulário abaixo com as informações solicitadas:",
+                              color=discord.Color.blue())
+
+        # Adiciona campos vazios ao embed para cada campo do formulário
+        for field in FORM_FIELDS:
+            if field == "Disponibilidade":
+                embed.add_field(
+                    name=field, value="Selecione sua disponibilidade abaixo", inline=False)
+            else:
+                embed.add_field(
+                    name=field, value="Digite sua resposta aqui", inline=False)
+
+        message = await ctx.send(embed=embed)
+
+        # Inicializa as respostas
+        respostas = {}
+
+        # Prompt para selecionar a disponibilidade
+        disponibilidade_message = await self.prompt_disponibilidade(ctx)
+
+        # Atualiza o embed com as respostas fornecidas
+        for field in FORM_FIELDS:
+            if field != "Disponibilidade":
+                await ctx.send(f"Por favor, digite sua resposta para {field}:")
+                response = await self.bot.wait_for('message', check=lambda m: m.author == ctx.author and m.channel == ctx.channel)
+                respostas[field] = response.content
+                # Atualiza o embed com a resposta fornecida
+                embed.set_field_at(FORM_FIELDS.index(
+                    field), name=field, value=response.content)
+
+                await message.edit(embed=embed)
+
+        # Adiciona a disponibilidade às respostas
+        respostas["Disponibilidade"] = disponibilidade_message.component[0].values[0]
+
+        # Constrói uma mensagem com as respostas
+        # Menciona o autor do formulário
+        response_message = f"Respostas do formulário de {ctx.author.mention}:\n"
+        for field, answer in respostas.items():
+            response_message += f"{field}: {answer}\n"
+
+        # Envia as respostas do formulário para o canal específico
+        channel = self.bot.get_channel(FORM_CHANNEL_ID)
+        if channel:
+            form_message = await channel.send(response_message)
+            # Armazena o ID da mensagem original do formulário de admissão
+            form_message_ids[form_message.id] = ctx.author.id
+            # Adiciona reações à mensagem do formulário
+            await form_message.add_reaction('✅')  # Reação de confirmação
+            await form_message.add_reaction('❌')  # Reação de negação
+            await ctx.send("Seu formulário foi enviado com sucesso. Aguarde uma resposta.")
+        else:
+            await ctx.send(f'Não foi possível enviar o formulário no momento. Por favor, tente novamente mais tarde.')
+
+def setup(bot):
+    bot.add_cog(Formulario(bot))
+
 
 @bot.event
 async def on_ready():
@@ -67,59 +143,6 @@ async def enviar_orientacao():
             print(f"Erro ao enviar a mensagem de orientação: {e}")
     else:
         print("Canal de orientação não encontrado.")
-
-
-@bot.command()
-async def enviarformulario(ctx):
-    # Envia as instruções
-    embed = discord.Embed(title="Formulário de Admissão",
-                          description="Por favor, preencha o formulário abaixo com as informações solicitadas:",
-                          color=discord.Color.blue())
-
-    # Adiciona campos vazios ao embed para cada campo do formulário
-    for field in FORM_FIELDS:
-        if field == "Disponibilidade":
-            options = "\n".join([f"{i}. {option}" for i, option in enumerate(DISPONIBILIDADE_OPTIONS, start=1)])
-            embed.add_field(
-                name=field, value=f"Selecione a opção de disponibilidade digitando o número correspondente:\n{options}", inline=False)
-        else:
-            embed.add_field(
-                name=field, value="Digite sua resposta aqui", inline=False)
-
-    message = await ctx.send(embed=embed)
-
-    # Inicializa as respostas
-    respostas = {}
-
-    # Atualiza o embed com as respostas fornecidas
-    for field in FORM_FIELDS:
-        await ctx.send(f"Por favor, digite sua resposta para {field}:")
-        response = await bot.wait_for('message', check=lambda m: m.author == ctx.author and m.channel == ctx.channel)
-        respostas[field] = response.content
-        # Atualiza o embed com a resposta fornecida
-        embed.set_field_at(FORM_FIELDS.index(
-            field), name=field, value=response.content)
-
-        await message.edit(embed=embed)
-
-    # Constrói uma mensagem com as respostas
-    # Menciona o autor do formulário
-    response_message = f"Respostas do formulário de {ctx.author.mention}:\n"
-    for field, answer in respostas.items():
-        response_message += f"{field}: {answer}\n"
-
-    # Envia as respostas do formulário para o canal específico
-    channel = bot.get_channel(FORM_CHANNEL_ID)
-    if channel:
-        form_message = await channel.send(response_message)
-        # Armazena o ID da mensagem original do formulário de admissão
-        form_message_ids[form_message.id] = ctx.author.id
-        # Adiciona reações à mensagem do formulário
-        await form_message.add_reaction('✅')  # Reação de confirmação
-        await form_message.add_reaction('❌')  # Reação de negação
-        await ctx.send("Seu formulário foi enviado com sucesso. Aguarde uma resposta.")
-    else:
-        await ctx.send(f'Não foi possível enviar o formulário no momento. Por favor, tente novamente mais tarde.')
 
 
 @bot.event
@@ -166,4 +189,5 @@ async def recusar_admissao(reaction, author):
         print("Canal de admissões negadas não encontrado.")
 
 
+bot.add_cog(Formulario(bot))
 bot.run(TOKEN)
