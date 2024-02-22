@@ -17,8 +17,11 @@ FORM_FIELDS = [
     "Nome",
     "Idade",
     "E-mail",
-    "Telefone"
+    "Telefone",
+    "Disponibilidade"  # Novo campo para disponibilidade
 ]
+
+DISPONIBILIDADE_OPTIONS = ["Manhã", "Tarde", "Noite", "Manhã, Tarde e Noite"]  # Opções de disponibilidade
 
 # Variáveis globais para armazenar o estado do envio da mensagem de orientação
 orientacao_enviada = False
@@ -72,10 +75,17 @@ async def enviarformulario(ctx):
     embed = discord.Embed(title="Formulário de Admissão",
                           description="Por favor, preencha o formulário abaixo com as informações solicitadas:",
                           color=discord.Color.blue())
+
     # Adiciona campos vazios ao embed para cada campo do formulário
     for field in FORM_FIELDS:
-        embed.add_field(
-            name=field, value="Digite sua resposta aqui", inline=False)
+        if field == "Disponibilidade":
+            options = "\n".join([f"{i}. {option}" for i, option in enumerate(DISPONIBILIDADE_OPTIONS, start=1)])
+            embed.add_field(
+                name=field, value=f"Selecione a opção de disponibilidade digitando o número correspondente:\n{options}", inline=False)
+        else:
+            embed.add_field(
+                name=field, value="Digite sua resposta aqui", inline=False)
+
     message = await ctx.send(embed=embed)
 
     # Inicializa as respostas
