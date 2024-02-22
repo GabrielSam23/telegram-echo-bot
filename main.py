@@ -1,10 +1,7 @@
 import os
 import discord
 from discord.ext import commands
-from discord_slash import SlashCommand, SlashContext
-from discord_slash.utils.manage_components import create_select, create_select_option, wait_for_component
 from keep_alive import keep_alive
-
 keep_alive()
 
 # Configurações
@@ -32,7 +29,6 @@ form_message_ids = {}
 # Inicialização do bot
 intents = discord.Intents.default()
 bot = commands.Bot(command_prefix=PREFIX, intents=intents)
-slash = SlashCommand(bot, sync_commands=True)
 
 
 @bot.event
@@ -80,32 +76,10 @@ async def enviarformulario(ctx):
     for field in FORM_FIELDS:
         embed.add_field(
             name=field, value="Digite sua resposta aqui", inline=False)
-
-    # Adicionando campo de disponibilidade com menu suspenso
-    select = create_select(
-        options=[
-            create_select_option("Manhã", "manha"),
-            create_select_option("Tarde", "tarde"),
-            create_select_option("Noite", "noite"),
-            create_select_option("Todas as opções", "todas")
-        ],
-        placeholder="Selecione sua disponibilidade",
-        custom_id="disponibilidade"
-    )
-
-    message = await ctx.send(embed=embed, components=[select])
+    message = await ctx.send(embed=embed)
 
     # Inicializa as respostas
     respostas = {}
-
-    # Aguarda a seleção da disponibilidade
-    interaction = await wait_for_component(bot, components=select)
-    disponibilidade = interaction.selected_options[0]
-    respostas["Disponibilidade"] = disponibilidade
-
-    # Atualiza o embed com a resposta de disponibilidade
-    embed.set_field_at(0, name="Disponibilidade", value=disponibilidade, inline=False)
-    await message.edit(embed=embed)
 
     # Atualiza o embed com as respostas fornecidas
     for field in FORM_FIELDS:
@@ -183,3 +157,4 @@ async def recusar_admissao(reaction, author):
 
 
 bot.run(TOKEN)
+
